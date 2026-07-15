@@ -1,0 +1,5 @@
+node_modules/
+momo.db
+momo.db-shm
+momo.db-wal
+.env
