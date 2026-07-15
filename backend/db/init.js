@@ -23,7 +23,7 @@ function init() {
       cost REAL NOT NULL DEFAULT 0,
       stock INTEGER NOT NULL DEFAULT 0,
       low_stock_threshold INTEGER NOT NULL DEFAULT 10,
-      created_at TEXT DEFAULT (datetime('now')),
+      created_at TEXT DEFAULT (datetime('now', 'localtime'))
       updated_at TEXT DEFAULT (datetime('now'))
     );
 
