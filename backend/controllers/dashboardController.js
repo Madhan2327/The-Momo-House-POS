@@ -58,7 +58,9 @@ function recentBills(req, res) {
   const bills = db
     .prepare(
       `SELECT id, bill_number AS id_display, customer, amount, status, created_at
-       FROM bills ORDER BY created_at DESC LIMIT 6`
+       FROM bills
+       ORDER BY created_at DESC
+       LIMIT 6`
     )
     .all();
 
@@ -67,14 +69,24 @@ function recentBills(req, res) {
   );
 
   res.json(
-    bills.map((b) => ({
-      id: b.id_display,
-      customer: b.customer,
-      amount: b.amount,
-      status: b.status,
-      time: new Date(b.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
-      items: itemCount.get(b.id).count,
-    }))
+    bills.map((b) => {
+      // Convert SQLite UTC timestamp to IST
+      const date = new Date(b.created_at + "Z");
+      date.setMinutes(date.getMinutes() + 330);
+
+      return {
+        id: b.id_display,
+        customer: b.customer,
+        amount: b.amount,
+        status: b.status,
+        time: date.toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        }),
+        items: itemCount.get(b.id).count,
+      };
+    })
   );
 }
 
