@@ -1,12 +1,10 @@
-import { Routes, Route } from "react-router-dom";
-import Login from "../pages/login/Login";
-import Layout from "../components/layout/Layout";
-import Dashboard from "../pages/dashboard/Dashboard";
-import Billing from "../pages/billing/Billing";
-import Products from "../pages/products/Products";
-import Stock from "../pages/stock/Stock";
-import Reports from "../pages/reports/Reports";
-import Settings from "../pages/settings/Settings";
+import Login from "../pages/Login/Login";
+import Dashboard from "../pages/Dashboard/Dashboard";
+import Billing from "../pages/Billing/Billing";
+import Products from "../pages/Products/Products";
+import Stock from "../pages/Stock/Stock";
+import Reports from "../pages/Reports/Reports";
+import Settings from "../pages/Settings/Settings";
 
 export default function AppRouter() {
   return (
