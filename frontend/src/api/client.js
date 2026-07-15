@@ -1,7 +1,7 @@
 // Central API client — every backend call goes through here so the
 // base URL and auth header only need to be set in one place.
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const BASE_URL = import.meta.env.VITE_API_URL || "https://themomohousepos.onrender.com/";
 
 function getToken() {
   return localStorage.getItem("momo_token");
