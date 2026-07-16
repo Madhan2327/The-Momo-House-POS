@@ -1,63 +1,158 @@
-const { db } = require("../db/init");
+const pool = require("../db/db");
 
-function getAll(req, res) {
-  const products = db.prepare("SELECT * FROM products ORDER BY name ASC").all();
-  res.json(products);
-}
-
-function getOne(req, res) {
-  const product = db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id);
-  if (!product) return res.status(404).json({ error: "Product not found" });
-  res.json(product);
-}
-
-function create(req, res) {
-  const { name, category, price, cost, stock, low_stock_threshold } = req.body;
-
-  if (!name || price == null) {
-    return res.status(400).json({ error: "name and price are required" });
+async function getAll(req, res) {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM products ORDER BY name ASC"
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch products" });
   }
-
-  const result = db
-    .prepare(
-      `INSERT INTO products (name, category, price, cost, stock, low_stock_threshold)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    )
-    .run(name, category || "General", price, cost || 0, stock || 0, low_stock_threshold || 10);
-
-  const product = db.prepare("SELECT * FROM products WHERE id = ?").get(result.lastInsertRowid);
-  res.status(201).json(product);
 }
 
-function update(req, res) {
-  const existing = db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id);
-  if (!existing) return res.status(404).json({ error: "Product not found" });
+async function getOne(req, res) {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM products WHERE id = $1",
+      [req.params.id]
+    );
 
-  const { name, category, price, cost, stock, low_stock_threshold } = req.body;
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
 
-  db.prepare(
-    `UPDATE products SET
-      name = ?, category = ?, price = ?, cost = ?, stock = ?, low_stock_threshold = ?,
-      updated_at = datetime('now')
-     WHERE id = ?`
-  ).run(
-    name ?? existing.name,
-    category ?? existing.category,
-    price ?? existing.price,
-    cost ?? existing.cost,
-    stock ?? existing.stock,
-    low_stock_threshold ?? existing.low_stock_threshold,
-    req.params.id
-  );
-
-  const updated = db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id);
-  res.json(updated);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch product" });
+  }
 }
 
-function remove(req, res) {
-  const result = db.prepare("DELETE FROM products WHERE id = ?").run(req.params.id);
-  if (result.changes === 0) return res.status(404).json({ error: "Product not found" });
-  res.json({ success: true });
+async function create(req, res) {
+  try {
+    const {
+      name,
+      category,
+      price,
+      cost,
+      stock,
+      low_stock_threshold,
+    } = req.body;
+
+    if (!name || price == null) {
+      return res.status(400).json({
+        error: "name and price are required",
+      });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO products
+      (name, category, price, cost, stock, low_stock_threshold)
+      VALUES ($1,$2,$3,$4,$5,$6)
+      RETURNING *`,
+      [
+        name,
+        category || "General",
+        price,
+        cost || 0,
+        stock || 0,
+        low_stock_threshold || 10,
+      ]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to create product" });
+  }
 }
 
-module.exports = { getAll, getOne, create, update, remove };
+async function update(req, res) {
+  try {
+    const existing = await pool.query(
+      "SELECT * FROM products WHERE id = $1",
+      [req.params.id]
+    );
+
+    if (existing.rows.length === 0) {
+      return res.status(404).json({
+        error: "Product not found",
+      });
+    }
+
+    const product = existing.rows[0];
+
+    const {
+      name,
+      category,
+      price,
+      cost,
+      stock,
+      low_stock_threshold,
+    } = req.body;
+
+    const result = await pool.query(
+      `UPDATE products
+       SET
+         name=$1,
+         category=$2,
+         price=$3,
+         cost=$4,
+         stock=$5,
+         low_stock_threshold=$6,
+         updated_at=NOW()
+       WHERE id=$7
+       RETURNING *`,
+      [
+        name ?? product.name,
+        category ?? product.category,
+        price ?? product.price,
+        cost ?? product.cost,
+        stock ?? product.stock,
+        low_stock_threshold ?? product.low_stock_threshold,
+        req.params.id,
+      ]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Failed to update product",
+    });
+  }
+}
+
+async function remove(req, res) {
+  try {
+    const result = await pool.query(
+      "DELETE FROM products WHERE id = $1 RETURNING id",
+      [req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: "Product not found",
+      });
+    }
+
+    res.json({
+      success: true,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Failed to delete product",
+    });
+  }
+}
+
+module.exports = {
+  getAll,
+  getOne,
+  create,
+  update,
+  remove,
+};
