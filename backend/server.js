@@ -3,8 +3,8 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 
-// Connect to PostgreSQL
 const pool = require("./db/db");
+const { init } = require("./db/init");
 
 const authRoutes = require("./routes/auth.routes");
 const productsRoutes = require("./routes/products.routes");
@@ -16,6 +16,15 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Initialize PostgreSQL tables and admin user
+init()
+  .then(() => {
+    console.log("✅ Database initialized");
+  })
+  .catch((err) => {
+    console.error("❌ Database initialization failed:", err);
+  });
 
 // Test PostgreSQL connection
 pool.query("SELECT NOW()")
