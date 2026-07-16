@@ -23,8 +23,8 @@ function init() {
       cost REAL NOT NULL DEFAULT 0,
       stock INTEGER NOT NULL DEFAULT 0,
       low_stock_threshold INTEGER NOT NULL DEFAULT 10,
-      created_at TEXT DEFAULT (datetime('now', 'localtime'))
-      updated_at TEXT DEFAULT (datetime('now'))
+      created_at TEXT DEFAULT (datetime('now', 'localtime')),
+      updated_at TEXT DEFAULT (datetime('now', 'localtime'))
     );
 
     CREATE TABLE IF NOT EXISTS bills (
@@ -34,7 +34,7 @@ function init() {
       amount REAL NOT NULL DEFAULT 0,
       profit REAL NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'Paid',
-      created_at TEXT DEFAULT (datetime('now'))
+      created_at TEXT DEFAULT (datetime('now', 'localtime'))
     );
 
     CREATE TABLE IF NOT EXISTS bill_items (
@@ -53,27 +53,42 @@ function init() {
       address TEXT DEFAULT '',
       phone TEXT DEFAULT '',
       gst_number TEXT DEFAULT '',
-      updated_at TEXT DEFAULT (datetime('now'))
+      updated_at TEXT DEFAULT (datetime('now', 'localtime'))
     );
   `);
 
-  // Seed the admin user once, from .env credentials
-  const existing = db.prepare("SELECT id FROM users WHERE username = ?").get(process.env.ADMIN_USERNAME);
+  const adminUsername = process.env.ADMIN_USERNAME || "admin";
+  const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+
+  const existing = db
+    .prepare("SELECT id FROM users WHERE username = ?")
+    .get(adminUsername);
+
   if (!existing) {
-    const hash = bcrypt.hashSync(process.env.ADMIN_PASSWORD, 10);
-    db.prepare("INSERT INTO users (username, password_hash) VALUES (?, ?)").run(
-      process.env.ADMIN_USERNAME,
-      hash
-    );
-    console.log(`Seeded admin user: ${process.env.ADMIN_USERNAME}`);
+    const hash = bcrypt.hashSync(adminPassword, 10);
+
+    db.prepare(
+      "INSERT INTO users (username, password_hash) VALUES (?, ?)"
+    ).run(adminUsername, hash);
+
+    console.log(`Seeded admin user: ${adminUsername}`);
   }
 
-  // Seed a single settings row if it doesn't exist yet
-  const existingSettings = db.prepare("SELECT id FROM settings WHERE id = 1").get();
+  const existingSettings = db
+    .prepare("SELECT id FROM settings WHERE id = 1")
+    .get();
+
   if (!existingSettings) {
-    db.prepare(
-      "INSERT INTO settings (id, shop_name, address, phone, gst_number) VALUES (1, ?, ?, ?, ?)"
-    ).run("The Momo House", "", "", "");
+    db.prepare(`
+      INSERT INTO settings
+      (id, shop_name, address, phone, gst_number)
+      VALUES (1, ?, ?, ?, ?)
+    `).run(
+      "The Momo House",
+      "",
+      "",
+      ""
+    );
   }
 }
 
